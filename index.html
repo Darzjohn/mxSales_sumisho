@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2e4c9a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Sumisho Motors · Pricing</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="icon" href="assessts/sumisho-logo.png">
+  <link rel="stylesheet" href="style.css">
+  <script src="theme.js"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+  <script>Auth.require();</script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1 class="brand"><img src="assessts/sumisho-logo.png" alt="Sumisho Motor Finance Corporation"><span id="storeName" class="sr-only">Sumisho Motors</span></h1>
+      <div class="top-actions">
+        <button class="icon-btn" id="themeBtn" aria-label="Switch to dark theme"><i class="fas fa-moon"></i></button>
+        <button class="logout-btn" id="logoutBtn" aria-label="Log out"><i class="fas fa-sign-out-alt"></i><span>Log out</span></button>
+      </div>
+    </header>
+ 
+    <nav class="tabs" role="tablist" aria-label="Brand">
+      <button class="tab" role="tab" data-brand="honda">Honda</button>
+      <button class="tab" role="tab" data-brand="suzuki">Suzuki</button>
+      <button class="tab" role="tab" data-brand="yamaha">Yamaha</button>
+    </nav>
+ 
+    <section class="toolbar" aria-label="Search and filters">
+      <div class="search">
+        <i class="fas fa-search"></i>
+        <input type="search" id="searchInput" placeholder="Search model, code, SRP or down payment" autocomplete="off" enterkeyhint="search">
+        <button type="button" class="search-clear" id="clearSearch" aria-label="Clear search" hidden>&times;</button>
+      </div>
+      <div class="controls">
+        <select id="termFilter" aria-label="Filter by term">
+          <option value="all">All terms</option>
+          <option value="12">12 mo.</option><option value="18">18 mo.</option>
+          <option value="24">24 mo.</option><option value="30">30 mo.</option>
+          <option value="36">36 mo.</option>
+        </select>
+        <select id="sortSelect" aria-label="Sort">
+          <option value="default">Default order</option>
+          <option value="srp-asc">SRP: low → high</option>
+          <option value="srp-desc">SRP: high → low</option>
+          <option value="name">Name A–Z</option>
+        </select>
+        <button class="icon-btn" id="toggleAll" aria-label="Expand or collapse all" title="Expand / collapse all"><i class="fas fa-angle-double-down"></i></button>
+        <button class="icon-btn" id="resetBtn" aria-label="Reset filters" title="Reset"><i class="fas fa-undo-alt"></i></button>
+      </div>
+      <p class="hint"><i class="fas fa-circle-info"></i> Tap a model to see its payment plans, then tap a down-payment row to copy the quote.</p>
+    </section>
+ 
+    <main id="results" aria-live="polite"></main>
+ 
+    <footer class="footer-note">
+      <span><span id="brandFooter"></span> pricing</span>
+      <span><span id="modelCount">0</span> models · <span id="rowCount">0</span> plans</span>
+    </footer>
+  </div>
+ 
+  <button class="fab" id="addUnitBtn" aria-label="Add unit"><i class="fas fa-plus"></i><span>Add unit</span></button>
+ 
+  <dialog id="addDialog" aria-labelledby="dlgTitle">
+    <form id="addForm" novalidate>
+      <div class="dlg-head">
+        <h2 id="dlgTitle"><i class="fas fa-plus-circle"></i> Add unit</h2>
+        <button type="button" class="icon-btn" id="dlgClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="dlg-body">
+        <div class="grid2">
+          <div class="field"><label for="fModel">Model *</label><input id="fModel" required placeholder="e.g. ADV160" autocomplete="off"></div>
+          <div class="field"><label for="fCode">Code</label><input id="fCode" placeholder="e.g. ADV160AP" autocomplete="off"></div>
+          <div class="field"><label for="fSrp">SRP (₱) *</label><input id="fSrp" inputmode="numeric" required placeholder="171400" autocomplete="off"></div>
+          <div class="field"><label for="fDp">Down payment (₱) *</label><input id="fDp" inputmode="numeric" required placeholder="12900" autocomplete="off"></div>
+        </div>
+        <p class="muted small">Monthly amounts (leave blank if not offered)</p>
+        <div class="grid3">
+          <div class="field"><label for="f12">12 mo.</label><input id="f12" inputmode="numeric" autocomplete="off"></div>
+          <div class="field"><label for="f18">18 mo.</label><input id="f18" inputmode="numeric" autocomplete="off"></div>
+          <div class="field"><label for="f24">24 mo.</label><input id="f24" inputmode="numeric" autocomplete="off"></div>
+          <div class="field"><label for="f30">30 mo.</label><input id="f30" inputmode="numeric" autocomplete="off"></div>
+          <div class="field"><label for="f36">36 mo.</label><input id="f36" inputmode="numeric" autocomplete="off"></div>
+        </div>
+        <p id="formError" class="login-error" role="alert"></p>
+      </div>
+      <div class="dlg-foot">
+        <button type="button" class="btn-ghost" id="dlgCancel">Cancel</button>
+        <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save unit</button>
+      </div>
+    </form>
+  </dialog>
+ 
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+ 
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
