@@ -286,3 +286,17 @@ html[data-theme="dark"] { color-scheme:dark;
 [data-theme="dark"] .brand { background:rgba(255,255,255,.92); padding:.3rem .8rem; border-radius:16px; }
 [data-theme="dark"] .brand img { filter:none; }
 [data-theme="dark"] .footer-note { border-top-color:rgba(130,160,240,.2); }
+ 
+/* ---------- top action icons (add / update) ---------- */
+.tabs-row { display:flex; align-items:center; gap:.5rem; margin-bottom:.7rem; }
+.tabs-row .tabs { flex:1; margin-bottom:0; max-width:460px; }
+.tab { font-size:.9rem; padding:0 .3rem; }
+.icon-btn.act { width:48px; height:48px; font-size:1.05rem; }
+.icon-btn.act.on { background-image:linear-gradient(135deg,#2e4c9a,#4a6bc4); color:#fff; border-color:transparent; box-shadow:0 4px 14px rgba(46,76,154,.45); }
+#results.editing .opt { box-shadow:inset 3px 0 0 var(--g700); }
+#results.editing .opt-main { cursor:cell; }
+.check { display:flex; gap:.5rem; align-items:center; font-size:.85rem; margin-top:.8rem; color:var(--ink); }
+.check[hidden] { display:none; }
+.check input { width:18px; height:18px; accent-color:#2e4c9a; }
+.field input[readonly] { opacity:.65; }
+.dlg-foot .btn-ghost[hidden] { display:none; }
