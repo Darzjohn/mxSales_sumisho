@@ -33,7 +33,7 @@
   function baseRows(brand) {
     if (!baseCache[brand]) {
       baseCache[brand] = DATA[brand].rows.map((r, i) => ({
-        uid: brand + '-' + i, custom: false,
+        uid: brand + '-' + i, custom: false, key: [brand, r[0], r[1], r[2], r[3]].join('|'),
         model: r[0], code: r[1] && r[1] !== '-' ? r[1] : '', srp: r[2], dp: r[3],
         t: r.slice(4, 9).map(num)
       }));
@@ -48,12 +48,19 @@
     try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(custom)); }
     catch (e) { toast('Could not save – storage is full or blocked'); }
   }
-  const allRows = (brand) => baseRows(brand).concat((custom[brand] || []).map((c) => ({ ...c, custom: true, uid: 'c-' + c.id })));
+  const OV_KEY = 'sumisho_overrides_v1';
+  let overrides = (() => { try { return JSON.parse(localStorage.getItem(OV_KEY)) || {}; } catch (e) { return {}; } })();
+  function saveOverrides() {
+    try { localStorage.setItem(OV_KEY, JSON.stringify(overrides)); }
+    catch (e) { toast('Could not save – storage is full or blocked'); }
+  }
+  const allRows = (brand) => baseRows(brand).map((r) => (overrides[r.key] ? { ...r, ...overrides[r.key], edited: true } : r)).concat((custom[brand] || []).map((c) => ({ ...c, custom: true, uid: 'c-' + c.id })));
  
   // ---------- state ----------
   let brand = 'honda';
   try { const b = localStorage.getItem(BRAND_KEY); if (DATA[b]) brand = b; } catch (e) {}
   let visible = new Map();
+  let editMode = false;
  
   // ---------- filtering / grouping ----------
   function getFiltered() {
@@ -102,7 +109,7 @@
           const terms = TERMS.map((m, i) => hl >= 0 && i !== hl ? '' : `<span class="term${r.t[i] === null ? ' na' : ''}${i === hl ? ' hl' : ''}"><b>${m} mo.</b>${r.t[i] === null ? '—' : peso(r.t[i])}</span>`).join('');
           return `<div class="opt">
             <button type="button" class="opt-main${hl >= 0 ? ' one' : ''}" data-uid="${esc(r.uid)}" aria-label="Copy quote for ${esc(g.model)}, down payment ${peso(r.dp)}">
-              <span class="opt-dp"><small>Down payment</small>${peso(r.dp)}</span>
+              <span class="opt-dp"><small>Down payment${r.edited ? ' · edited' : ''}</small>${peso(r.dp)}</span>
               <span class="terms${hl >= 0 ? ' single' : ''}">${terms}</span>
               <span class="opt-copy"><i class="far fa-copy"></i></span>
             </button>
@@ -189,7 +196,7 @@
       return;
     }
     const main = e.target.closest('.opt-main');
-    if (main) { const r = visible.get(main.dataset.uid); if (r) copy(quoteText(r)); }
+    if (main) { const r = visible.get(main.dataset.uid); if (r) { editMode ? openEdit(r) : copy(quoteText(r)); } }
   });
   el.results.addEventListener('toggle', syncToggleIcon, true);
  
@@ -207,8 +214,28 @@
   el.tabs.forEach((t) => t.addEventListener('click', () => { if (t.dataset.brand !== brand) setBrand(t.dataset.brand, true); }));
   $('logoutBtn').addEventListener('click', () => Auth.logout());
  
-  // ---------- add unit dialog ----------
-  const openDlg = () => { el.formError.textContent = ''; el.dlg.showModal(); $('fModel').focus(); };
+  // ---------- add / update dialog ----------
+  const F = { model: $('fModel'), code: $('fCode'), srp: $('fSrp'), dp: $('fDp') };
+  const submitLabel = $('dlgSubmit').querySelector('span');
+  let editing = null;
+  function setMode(row) {
+    editing = row;
+    const edit = !!row;
+    $('dlgTitle').innerHTML = edit ? '<i class="fas fa-edit"></i> Update unit' : '<i class="fas fa-plus-circle"></i> Add to ' + cap(brand);
+    submitLabel.textContent = edit ? 'Save changes' : 'Save unit';
+    F.model.readOnly = F.code.readOnly = edit;
+    $('applyAllRow').hidden = !edit;
+    $('dlgRestore').hidden = !(edit && row.edited);
+    el.formError.textContent = '';
+  }
+  function openDlg() { el.form.reset(); setMode(null); el.dlg.showModal(); F.model.focus(); }
+  function openEdit(r) {
+    el.form.reset(); setMode(r);
+    F.model.value = r.model; F.code.value = r.code; F.srp.value = r.srp; F.dp.value = r.dp;
+    TERMS.forEach((m, i) => { $('f' + m).value = r.t[i] === null ? '' : r.t[i]; });
+    $('fAll').checked = true;
+    el.dlg.showModal(); F.dp.focus();
+  }
   const closeDlg = () => { el.dlg.close(); el.form.reset(); };
   $('addUnitBtn').addEventListener('click', openDlg);
   $('dlgClose').addEventListener('click', closeDlg);
@@ -216,20 +243,52 @@
   el.dlg.addEventListener('click', (e) => { if (e.target === el.dlg) closeDlg(); });
   el.dlg.addEventListener('cancel', () => el.form.reset());
  
+  $('dlgRestore').addEventListener('click', () => {
+    if (!editing) return;
+    delete overrides[editing.key]; saveOverrides(); closeDlg(); render(); toast('Original prices restored');
+  });
+ 
+  const hintEl = $('hintText'), HINT = hintEl.innerHTML;
+  $('updateBtn').addEventListener('click', function () {
+    editMode = !editMode;
+    this.classList.toggle('on', editMode); this.setAttribute('aria-pressed', editMode);
+    el.results.classList.toggle('editing', editMode);
+    hintEl.innerHTML = editMode
+      ? '<i class="fas fa-edit"></i> Update mode is on: tap a down-payment row to change its SRP, down payment or monthly amounts. Tap the pencil again to finish.'
+      : HINT;
+    toast(editMode ? 'Update mode on' : 'Update mode off');
+  });
+ 
+  const findCustom = (uid) => (custom[brand] || []).find((x) => 'c-' + x.id === uid);
   el.form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const model = $('fModel').value.trim();
-    const srp = num($('fSrp').value), dp = num($('fDp').value);
+    const model = F.model.value.trim();
+    const srp = num(F.srp.value), dp = num(F.dp.value);
+    const t = TERMS.map((m) => num($('f' + m).value));
     if (!model) return (el.formError.textContent = 'Please enter the model name.');
     if (!srp || !dp) return (el.formError.textContent = 'SRP and down payment must be numbers.');
     if (dp >= srp) return (el.formError.textContent = 'Down payment must be lower than SRP.');
-    const t = TERMS.map((m) => num($('f' + m).value));
     if (t.every((v) => v === null)) return (el.formError.textContent = 'Enter at least one monthly amount.');
-    (custom[brand] = custom[brand] || []).push({ id: Date.now().toString(36), model, code: $('fCode').value.trim(), srp, dp, t });
-    saveCustom(); closeDlg();
-    el.search.value = model; el.term.value = 'all'; render();
-    toast('Unit added');
+ 
+    if (!editing) {
+      (custom[brand] = custom[brand] || []).push({ id: Date.now().toString(36), model, code: F.code.value.trim(), srp, dp, t });
+      saveCustom(); closeDlg();
+      el.search.value = model; el.term.value = 'all'; render();
+      return toast('Unit added');
+    }
+    const r = editing;
+    const sameModel = allRows(brand).filter((o) => o.uid !== r.uid && o.model === r.model && o.code === r.code && o.srp === r.srp);
+    if (r.custom) { const c = findCustom(r.uid); if (c) Object.assign(c, { srp, dp, t }); }
+    else overrides[r.key] = { srp, dp, t };
+    if ($('fAll').checked && srp !== r.srp) {
+      sameModel.forEach((o) => {
+        if (o.custom) { const c = findCustom(o.uid); if (c) c.srp = srp; }
+        else overrides[o.key] = { ...(overrides[o.key] || { dp: o.dp, t: o.t }), srp };
+      });
+    }
+    saveCustom(); saveOverrides(); closeDlg(); render(); toast('Changes saved');
   });
  
-  setBrand(brand, false);
+  // event listeners
+setBrand(brand, false);
 })();
